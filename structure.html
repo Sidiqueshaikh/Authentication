@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Firebase Login/Register</title>
+
+    <style>
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body{
+            background:#f2f2f2;
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+        }
+
+        .container{
+            background:white;
+            width:350px;
+            padding:25px;
+            border-radius:10px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h2{
+            text-align:center;
+            margin-bottom:20px;
+        }
+
+        input{
+            width:100%;
+            padding:10px;
+            margin:10px 0;
+            border:1px solid #ccc;
+            border-radius:5px;
+        }
+
+        button{
+            width:100%;
+            padding:10px;
+            border:none;
+            background:green;
+            color:white;
+            border-radius:5px;
+            cursor:pointer;
+            font-size:16px;
+        }
+
+        button:hover{
+            background:darkgreen;
+        }
+
+        .link{
+            margin-top:15px;
+            text-align:center;
+        }
+
+        .link a{
+            color:blue;
+            cursor:pointer;
+            text-decoration:none;
+        }
+
+        .form{
+            display:none;
+        }
+
+        .active{
+            display:block;
+        }
+
+        .success{
+            text-align:center;
+            color:green;
+            margin-bottom:10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+   
+    <div id="loginForm" class="form active">
+
+        <h2>Login</h2>
+
+        <input
+            type="email"
+            id="loginEmail"
+            placeholder="Enter Email"
+        >
+
+        <input
+            type="password"
+            id="loginPassword"
+            placeholder="Enter Password"
+        >
+
+        <button onclick="login()">
+            Login
+        </button>
+
+        <div class="link">
+            Don't have an account?
+            <a onclick="showRegister()">
+                Register
+            </a>
+        </div>
+
+    </div>
+
+
+    <div id="registerForm" class="form">
+
+        <h2>Register</h2>
+
+        <input
+            type="text"
+            id="name"
+            placeholder="Full Name"
+        >
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Enter Email"
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Enter Password"
+        >
+
+        <button onclick="register()">
+            Register
+        </button>
+
+        <div class="link">
+            Already have an account?
+            <a onclick="showLogin()">
+                Login
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script type="module">
+
+    
+    import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+    import {
+        getAuth,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        signOut
+    }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    import {
+        getFirestore,
+        doc,
+        setDoc
+    }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+   const firebaseConfig = {
+  apiKey: "AIzaSyAx-hobgc6AE3GVzMZ0KtWO1KfPoCnLFyM",
+  authDomain: "authentication-cfa2a.firebaseapp.com",
+  projectId: "authentication-cfa2a",
+  storageBucket: "authentication-cfa2a.firebasestorage.app",
+  messagingSenderId: "667859227801",
+  appId: "1:667859227801:web:11cf6a494d93a11e625408",
+  measurementId: "G-X768QCG40K"
+
+    };
+
+
+    const app = initializeApp(firebaseConfig);
+
+    const auth = getAuth(app);
+
+    const db = getFirestore(app);
+
+
+
+    
+    window.register = async function () {
+
+        const name =
+            document.getElementById("name").value;
+
+        const email =
+            document.getElementById("email").value;
+
+        const password =
+            document.getElementById("password").value;
+
+
+        try {
+
+           
+            const userCredential =
+                await createUserWithEmailAndPassword(
+                    auth,
+                    email,
+                    password
+                );
+
+            const user = userCredential.user;
+
+
+           
+            await setDoc(
+                doc(db, "users", user.uid),
+                {
+                    name: name,
+                    email: email,
+                    createdAt: new Date().toISOString()
+                }
+            );
+
+            alert("Registration Successful!");
+
+            showLogin();
+
+        }
+
+        catch (error) {
+
+            alert(error.message);
+        }
+    };
+
+
+
+    
+    window.login = async function () {
+
+        const email =
+            document.getElementById("loginEmail").value;
+
+        const password =
+            document.getElementById("loginPassword").value;
+
+
+        try {
+
+           
+            await signInWithEmailAndPassword(
+                auth,
+                email,
+                password
+            );
+
+
+            localStorage.setItem(
+                "session",
+                JSON.stringify({
+                    email: email,
+                    loginTime: Date.now()
+                })
+            );
+
+
+            alert("Login Successful!");
+
+        }
+
+        catch (error) {
+
+            alert(error.message);
+        }
+    };
+
+
+
+    window.checkSession = async function () {
+
+        const session =
+            localStorage.getItem("session");
+
+        if (!session) {
+            return;
+        }
+
+        const parsedSession =
+            JSON.parse(session);
+
+        const loginTime =
+            parsedSession.loginTime;
+
+        const currentTime =
+            Date.now();
+
+        
+        const oneHour =
+            60 * 60 * 1000;
+
+        const timePassed =
+            currentTime - loginTime;
+
+
+        if (timePassed > oneHour) {
+
+            alert(
+                "Session Expired! Please Login Again."
+            );
+
+            
+            localStorage.removeItem("session");
+
+            
+            await signOut(auth);
+
+            
+            showLogin();
+        }
+
+        else {
+
+            console.log(
+                "Session Active"
+            );
+        }
+    };
+
+
+    
+    checkSession();
+
+</script>
+
+
+
+<script>
+
+    
+    function showRegister() {
+
+        document
+            .getElementById("loginForm")
+            .classList.remove("active");
+
+        document
+            .getElementById("registerForm")
+            .classList.add("active");
+    }
+
+
+
+    
+    function showLogin() {
+
+        document
+            .getElementById("registerForm")
+            .classList.remove("active");
+
+        document
+            .getElementById("loginForm")
+            .classList.add("active");
+    }
+
+</script>
+
+</body>
+</html>
